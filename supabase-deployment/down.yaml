@@ -1,0 +1,8 @@
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Delete Supabase resources
+      command: |
+        kubectl delete deployment postgres -n supabase
+        kubectl delete pvc postgres-pvc -n supabase
+        kubectl delete namespace supabase

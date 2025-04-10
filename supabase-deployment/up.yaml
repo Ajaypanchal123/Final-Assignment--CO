@@ -1,0 +1,54 @@
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Create Supabase namespace
+      command: kubectl create namespace supabase
+      ignore_errors: yes  # Will succeed even if namespace exists
+
+    - name: Deploy PostgreSQL with persistence
+      command: |
+        kubectl apply -n supabase -f - <<EOF
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: postgres
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: postgres
+          template:
+            metadata:
+              labels:
+                app: postgres
+            spec:
+              containers:
+              - name: postgres
+                image: postgres:13
+                env:
+                - name: POSTGRES_PASSWORD
+                  value: "yourpassword123"
+                ports:
+                - containerPort: 5432
+                volumeMounts:
+                - name: postgres-storage
+                  mountPath: /var/lib/postgresql/data
+              volumes:
+              - name: postgres-storage
+                persistentVolumeClaim:
+                  claimName: postgres-pvc
+        ---
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: postgres-pvc
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+        EOF
+
+    - name: Expose PostgreSQL service
+      command: kubectl expose deployment postgres --port=5432 -n supabase
